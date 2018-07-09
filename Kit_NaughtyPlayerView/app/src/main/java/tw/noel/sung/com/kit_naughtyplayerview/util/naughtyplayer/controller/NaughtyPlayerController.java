@@ -4,18 +4,19 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.LayoutTransition;
 import android.content.Context;
-import android.graphics.Color;
 import android.media.AudioManager;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
 
-import tw.noel.sung.com.kit_naughtyplayerview.util.ColorUtil;
+import tw.noel.sung.com.kit_naughtyplayerview.R;
 import tw.noel.sung.com.kit_naughtyplayerview.util.naughtyplayer.controller.console.NaughtyPlayerConsole;
 import tw.noel.sung.com.kit_naughtyplayerview.util.naughtyplayer.controller.header.NaughtyPlayerHeader;
-import tw.noel.sung.com.kit_naughtyplayerview.util.naughtyplayer.popupwindow.ControllerPopupWindow;
 
 
 /**
@@ -26,15 +27,12 @@ public class NaughtyPlayerController extends RelativeLayout implements View.OnTo
 
     private final int _ANIMATION_TIME = 400;
     private final float _MAX_ALPHA_VALUE = 1;
-    private final float _MIN_ALPHA_VALUE = 0.1f;
+    private final float _MIN_ALPHA_VALUE = 0;
     private float currentAlpha = _MIN_ALPHA_VALUE;
 
-
-    private ControllerPopupWindow controllerPopupWindow;
     private float lastX;
     private float lastY;
     private float previousY;
-    private float previousX;
 
     //允許值
     private int _DEFAULT_VALUE = 40;
@@ -49,20 +47,32 @@ public class NaughtyPlayerController extends RelativeLayout implements View.OnTo
     //裝置目前音量
     private int currentVolume;
 
+    private View view;
+    private ProgressBar verticalProgressBar;
+    private ImageView imageView;
+
     private NaughtyPlayerHeader naughtyPlayerHeader;
     private NaughtyPlayerConsole naughtyPlayerConsole;
 
     //避免TOUCH
-    private boolean isSlideing;
+    private boolean isSliding;
+    //是否播放中
     public boolean isPlaying;
+    //是否成功初始化
+    public boolean isReady;
+
 
     //-------
-    public NaughtyPlayerController(Context context, NaughtyPlayerHeader naughtyPlayerHeader, NaughtyPlayerConsole naughtyPlayerConsole) {
+    public NaughtyPlayerController(Context context, NaughtyPlayerHeader naughtyPlayerHeader, NaughtyPlayerConsole naughtyPlayerConsole, View view) {
         super(context);
         this.context = context;
         this.naughtyPlayerHeader = naughtyPlayerHeader;
         this.naughtyPlayerConsole = naughtyPlayerConsole;
+        this.view = view;
 
+        this.view.setVisibility(GONE);
+        verticalProgressBar = (ProgressBar) this.view.findViewById(R.id.vertical_progressbar);
+        imageView = (ImageView) this.view.findViewById(R.id.image_view);
         init();
     }
 
@@ -77,7 +87,7 @@ public class NaughtyPlayerController extends RelativeLayout implements View.OnTo
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         setLayoutParams(params);
         setLayoutTransition(new LayoutTransition());
-        setBackgroundColor(Color.parseColor(ColorUtil.CONTROLLER));
+        setBackgroundColor(context.getResources().getColor(R.color.controller_bg));
         setAlpha(currentAlpha);
         setOnClickListener(this);
         setOnTouchListener(this);
@@ -85,11 +95,18 @@ public class NaughtyPlayerController extends RelativeLayout implements View.OnTo
         audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-        controllerPopupWindow = new ControllerPopupWindow(context);
 
         post(this);
     }
 
+    //------------------
+
+
+    @Override
+    public void run() {
+        viewHeight = getHeight();
+        viewWidth = getWidth();
+    }
 
     //------
 
@@ -98,6 +115,12 @@ public class NaughtyPlayerController extends RelativeLayout implements View.OnTo
      */
     @Override
     public void onClick(View view) {
+
+        if (!isReady) {
+            Toast.makeText(context, context.getString(R.string.loading_error), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         //播放中按下 顯示標題與控制台
         if (isPlaying) {
             showHeader();
@@ -171,7 +194,6 @@ public class NaughtyPlayerController extends RelativeLayout implements View.OnTo
 
     //-----------------
 
-
     /***
      *  隱藏 Console
      */
@@ -189,17 +211,6 @@ public class NaughtyPlayerController extends RelativeLayout implements View.OnTo
                 });
     }
 
-
-    //------------------
-
-
-    @Override
-    public void run() {
-        viewHeight = getHeight();
-        viewWidth = getWidth();
-    }
-
-
     //----------------
 
     @Override
@@ -209,17 +220,14 @@ public class NaughtyPlayerController extends RelativeLayout implements View.OnTo
 
         switch (motionEvent.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                isSlideing = false;
+                isSliding = false;
                 lastX = currentX;
-                previousX = currentX;
                 lastY = currentY;
                 previousY = currentY;
                 break;
             case MotionEvent.ACTION_MOVE:
 
                 if (isVerticalSlide(lastX, currentX)) {
-//                    controllerPopupWindow.showAsDropDown( this, -(int) currentX,- (int) currentY);
-
                     //Y當前位移值
                     float moveValueY = lastY - currentY;
 
@@ -234,59 +242,44 @@ public class NaughtyPlayerController extends RelativeLayout implements View.OnTo
                     //記錄行為後的currentY 做為下次判斷前一次Y所在位置用
                     previousY = currentY;
 
+                    this.view.setVisibility(VISIBLE);
                     //在螢幕左側 亮度調整
                     if (lastX < viewWidth / 2) {
                         moveValueY = moveValueY / viewHeight / 5;
-
                         currentAlpha = (currentAlpha - moveValueY) > _MAX_ALPHA_VALUE ? _MAX_ALPHA_VALUE : (currentAlpha - moveValueY) < _MIN_ALPHA_VALUE ? _MIN_ALPHA_VALUE : (currentAlpha - moveValueY);
                         setAlpha(currentAlpha);
+
+                        if (!isSliding) {
+                            //因為alpha最大值是1,故這邊將progress與max都乘以一千
+                            verticalProgressBar.setMax((int) (_MAX_ALPHA_VALUE * 1000));
+                            imageView.setBackgroundResource(R.drawable.ic_brightness);
+                        }
+                        verticalProgressBar.setProgress((int) ((1 - currentAlpha) * 1000));
                     }
                     //螢幕右側 聲音調整
                     else {
                         moveValueY = moveValueY / maxVolume / 10;
-
                         currentVolume = (int) ((currentVolume + moveValueY) > maxVolume ? maxVolume : (currentVolume + moveValueY) < 0 ? 0 : (currentVolume + moveValueY));
                         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0);
+                        if (!isSliding) {
+                            verticalProgressBar.setMax(maxVolume);
+                            imageView.setBackgroundResource(R.drawable.ic_volume);
+                        }
+                        verticalProgressBar.setProgress(currentVolume);
                     }
 
-                    isSlideing = true;
+                    isSliding = true;
                 }
-
-//                 if (isHorizontalSlide(lastY, currentY)) {
-//
-//                    float moveValueX = (( currentX -lastX )*2 ) ;
-//
-//                    //當 由左往右時  方向改變為 由右往左
-//                    if (currentX > lastX && previousX > currentX) {
-//                        lastX = previousX;
-//                    }
-//                    //當 由右往左時  方向改變為 由左往右
-//                    else if (currentX < lastX && previousX < currentX) {
-//                        lastX = previousX;
-//                    }
-//                    //記錄行為後的currentX 做為下次判斷前一次X所在位置用
-//                    previousX = currentX;
-//
-//                }
-
                 break;
             case MotionEvent.ACTION_UP:
+                this.view.setVisibility(GONE);
                 //如果觸發MOVE僅是為了設定 此時return true 避免事件到下層onclickListener
-                return isSlideing;
+                return isSliding;
         }
 
         return false;
     }
-    //---------------
 
-//    /***
-//     * 水平滑動-
-//     * 如果Y變動值在允許值以下 表示水平移動
-//     * @return
-//     */
-//    private boolean isHorizontalSlide(float lastY, float currentY) {
-//        return Math.abs((int) (lastY - currentY)) < _DEFAULT_VALUE;
-//    }
     //------------
 
     /***
@@ -297,20 +290,4 @@ public class NaughtyPlayerController extends RelativeLayout implements View.OnTo
     private boolean isVerticalSlide(float lastX, float currentX) {
         return Math.abs((int) (lastX - currentX)) < _DEFAULT_VALUE;
     }
-
-//    //---------------
-//
-//    /***
-//     * 水平滾動 接口
-//     */
-//    public interface OnHorizontalSlideListener {
-//        //水平滾動中
-//        void onHorizontalSliding(float moveValueX);
-//        //水平滾動完畢
-//        void onHorizontalSlided();
-//    }
-//
-//    public void setOnHorizontalSlideListener(OnHorizontalSlideListener onHorizontalSlideListener) {
-//        this.onHorizontalSlideListener = onHorizontalSlideListener;
-//    }
 }

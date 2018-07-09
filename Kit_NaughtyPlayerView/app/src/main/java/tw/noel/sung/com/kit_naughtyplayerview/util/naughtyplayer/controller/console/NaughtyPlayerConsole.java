@@ -2,15 +2,16 @@ package tw.noel.sung.com.kit_naughtyplayerview.util.naughtyplayer.controller.con
 
 import android.content.Context;
 import android.graphics.Color;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
-import tw.noel.sung.com.kit_naughtyplayerview.util.ColorUtil;
+import tw.noel.sung.com.kit_naughtyplayerview.R;
+import tw.noel.sung.com.kit_naughtyplayerview.util.time.TimeUtil;
 
 /**
  * Created by noel on 2018/7/7.
@@ -22,6 +23,12 @@ public class NaughtyPlayerConsole extends RelativeLayout implements SeekBar.OnSe
     private TextView totalTextView;
     private Context context;
     private final int _MARGIN = 40;
+    private TimeUtil timeUtil;
+
+    private int[] totalTimes;
+    private int[] currentTimes;
+    private OnProgressChangeListener onProgressChangeListener;
+    private int progress;
 
     public NaughtyPlayerConsole(Context context) {
         super(context);
@@ -31,6 +38,8 @@ public class NaughtyPlayerConsole extends RelativeLayout implements SeekBar.OnSe
 
     //----------
     private void init() {
+        timeUtil = new TimeUtil();
+
         addSeekBar();
         addCurrentTextView();
         addTotalTextView();
@@ -72,6 +81,7 @@ public class NaughtyPlayerConsole extends RelativeLayout implements SeekBar.OnSe
         seekBar = new SeekBar(context);
         seekBar.setLayoutParams(params);
         seekBar.setId(generateViewId());
+        seekBar.getProgressDrawable().setColorFilter(Color.RED, android.graphics.PorterDuff.Mode.SRC_IN);
         addView(seekBar);
         seekBar.post(this);
     }
@@ -92,7 +102,6 @@ public class NaughtyPlayerConsole extends RelativeLayout implements SeekBar.OnSe
         totalTextView.setLayoutParams(params);
         totalTextView.setGravity(Gravity.CENTER);
         totalTextView.setTextColor(Color.LTGRAY);
-        totalTextView.setText("aaa");
         addView(totalTextView);
         totalTextView.post(this);
     }
@@ -103,13 +112,16 @@ public class NaughtyPlayerConsole extends RelativeLayout implements SeekBar.OnSe
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, seekBar.getHeight() + currentTextView.getHeight());
         params.gravity = Gravity.BOTTOM;
         setLayoutParams(params);
-        setBackgroundColor(Color.parseColor(ColorUtil.HEADER_AND_CONSOLE));
+        setBackgroundColor(context.getResources().getColor(R.color.header_and_console_bg));
     }
     //----------
 
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-//        currentTextView.setText();
+        if (fromUser) {
+            Log.e("onProgressChanged", ""+progress);
+            this.progress = progress;
+        }
     }
     //----------
 
@@ -121,8 +133,37 @@ public class NaughtyPlayerConsole extends RelativeLayout implements SeekBar.OnSe
 
     @Override
     public void onStopTrackingTouch(SeekBar seekBar) {
+        Log.e("onStopTrackingTouch", ""+progress);
+        setCurrentTime(progress);
+        onProgressChangeListener.onProgressChanged(progress);
+    }
+    //---------
 
+    /***
+     *  設置目前時間
+     */
+    public void setCurrentTime(int seconds) {
+        seekBar.setProgress(seconds);
+        currentTimes = timeUtil.getConvertTime(seconds);
+        currentTextView.setText(String.format(context.getString(R.string.video_time), currentTimes[0], currentTimes[1], currentTimes[2]));
+    }
+    //----------
+
+    /***
+     * 設置影片總長度
+     */
+    public void setTotalTime(int seconds) {
+        seekBar.setMax(seconds);
+        totalTimes = timeUtil.getConvertTime(seconds);
+        totalTextView.setText(String.format(context.getString(R.string.video_time), totalTimes[0], totalTimes[1], totalTimes[2]));
     }
 
+    //-----------
+    public interface OnProgressChangeListener {
+        void onProgressChanged(int second);
+    }
 
+    public void setOnProgressChangeListener(OnProgressChangeListener onProgressChangeListener) {
+        this.onProgressChangeListener = onProgressChangeListener;
+    }
 }

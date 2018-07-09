@@ -1,13 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="30dp"
+    android:layout_width="25dp"
     android:layout_height="100dp"
     android:orientation="vertical">
-
-    <ImageView
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:contentDescription="@string/app_name" />
 
     <ProgressBar
         android:id="@+id/vertical_progressbar"
@@ -15,5 +10,10 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
+    <ImageView
+        android:layout_width="25dp"
+        android:layout_height="25dp"
+        android:id="@+id/image_view"
+        android:contentDescription="@string/app_name" />
 
 </LinearLayout>

@@ -7,15 +7,18 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
-import tw.noel.sung.com.kit_naughtyplayerview.util.ColorUtil;
+import tw.noel.sung.com.kit_naughtyplayerview.R;
 
 /**
  * Created by noel on 2018/7/7.
  */
 
 public class NaughtyPlayerHeader extends TextView {
+    private Context context;
+
     public NaughtyPlayerHeader(Context context) {
         super(context);
+        this.context = context;
         init();
     }
     //---------
@@ -25,7 +28,7 @@ public class NaughtyPlayerHeader extends TextView {
         params.gravity = Gravity.TOP;
         setLayoutParams(params);
         setPadding(30, 5, 30, 5);
-        setBackgroundColor(Color.parseColor(ColorUtil.HEADER_AND_CONSOLE));
+        setBackgroundColor(context.getResources().getColor(R.color.header_and_console_bg));
         setTextColor(Color.WHITE);
         setTextSize(20);
     }
