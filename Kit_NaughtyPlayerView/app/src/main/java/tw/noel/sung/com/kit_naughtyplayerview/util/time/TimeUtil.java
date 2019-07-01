@@ -1,5 +1,7 @@
 package tw.noel.sung.com.kit_naughtyplayerview.util.time;
 
+import android.util.Log;
+
 /**
  * Created by noel on 2018/7/8.
  */
@@ -23,13 +25,14 @@ public class TimeUtil {
      * @return
      */
     public int[] getConvertTime(int time) {
+
         int[] times = new int[3];
         //時
         times[0] = (time / HOUR_TO_SECOND);
         //分
-        times[1] = (time % HOUR_TO_SECOND) / MINUTE_TO_SECOND;
+        times[1] = (time - (times[0] * HOUR_TO_SECOND)) / MINUTE_TO_SECOND;
         //秒
-        times[2] = (time % HOUR_TO_SECOND) % MINUTE_TO_SECOND;
+        times[2] = (time - (times[0] * HOUR_TO_SECOND) - (times[1] * MINUTE_TO_SECOND));
         return times;
     }
 

@@ -8,6 +8,7 @@ import android.support.annotation.AttrRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -70,12 +71,12 @@ public class NaughtyPlayerView extends FrameLayout implements NaughtyPlayer.OnPl
 
     //----------
     private void init() {
-        View view =  LayoutInflater.from(context).inflate(R.layout.view_window_volume, this,false);
+        View view = LayoutInflater.from(context).inflate(R.layout.view_window_volume, this, false);
         naughtyPlayer = new NaughtyPlayer(context);
         naughtyPlayerHeader = new NaughtyPlayerHeader(context);
         naughtyPlayerConsole = new NaughtyPlayerConsole(context);
         naughtyPlayerConsole.setOnProgressChangeListener(this);
-        naughtyPlayerController = new NaughtyPlayerController(context, naughtyPlayerHeader, naughtyPlayerConsole,view);
+        naughtyPlayerController = new NaughtyPlayerController(context, naughtyPlayerHeader, naughtyPlayerConsole, view);
         initTimer();
 
         addView(naughtyPlayer);
@@ -99,8 +100,10 @@ public class NaughtyPlayerView extends FrameLayout implements NaughtyPlayer.OnPl
                 if (currentSecond <= totalSecond) {
                     naughtyPlayerConsole.setCurrentTime(currentSecond);
                     currentSecond++;
+                    handler.postDelayed(this, TIMER_UPDATE_TIME);
+                } else {
+                    handler.removeCallbacks(this);
                 }
-                handler.postDelayed(runnable, TIMER_UPDATE_TIME);
             }
         };
     }
